@@ -7,7 +7,11 @@ import 'package:qrpass/page/profile.dart';
 import 'Eventlist.dart';
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+  // Add a final field to hold the logged-in username
+  final String loggedInUsername;
+
+  // Require username in the constructor
+  const HomePage({super.key, required this.loggedInUsername});
 
   @override
   Widget build(BuildContext context) {
@@ -84,19 +88,22 @@ class HomePage extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => ProfileScreen(userId: 123),
+                    builder:
+                        (context) => ProfileScreen(username: loggedInUsername),
                   ),
                 );
               },
             ),
-
             ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('log out'),
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => LogoutPage()),
+                  MaterialPageRoute(
+                    builder:
+                        (context) => LogoutPage(username: loggedInUsername),
+                  ),
                 );
               },
             ),
@@ -204,7 +211,9 @@ class HomePage extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => ProfileScreen(userId: 123),
+                            builder:
+                                (context) =>
+                                    ProfileScreen(username: loggedInUsername),
                           ),
                         );
                       },

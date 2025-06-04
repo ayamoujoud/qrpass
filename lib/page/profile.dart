@@ -4,9 +4,9 @@ import 'dart:convert';
 import 'package:qr_flutter/qr_flutter.dart';
 
 class ProfileScreen extends StatefulWidget {
-  final int userId; // L'id que tu récupères depuis le login ou autre
+  final String username; // Changed to username
 
-  const ProfileScreen({Key? key, required this.userId}) : super(key: key);
+  const ProfileScreen({Key? key, required this.username}) : super(key: key);
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -14,6 +14,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? userData;
+  String? errorMessage;
   bool isQrLarge = false;
 
   @override
@@ -23,37 +24,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> fetchUserData() async {
-    final url = Uri.parse(
-      'http://192.168.1.118/api/profile/get_user?user_id=${widget.userId}',
-    );
-    final response = await http.get(url);
+    try {
+      final url = Uri.parse(
+        'http://192.168.1.118:8080/api/profile/get_user?username=${widget.username}',
+      );
+      final response = await http.get(url);
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      if (!data.containsKey('error')) {
-        setState(() {
-          userData = data;
-        });
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (!data.containsKey('error')) {
+          setState(() {
+            userData = data;
+            errorMessage = null;
+          });
+        } else {
+          setState(() {
+            errorMessage = "Backend error: ${data['error']}";
+          });
+        }
       } else {
-        print("Erreur backend : ${data['error']}");
+        setState(() {
+          errorMessage = "Network error: ${response.statusCode}";
+        });
       }
-    } else {
-      print("Erreur réseau : ${response.statusCode}");
+    } catch (e) {
+      setState(() {
+        errorMessage = "Exception: $e";
+      });
     }
   }
 
   String generateQrData() {
-    return '''
-Email: ${userData?['email']}
-Username: ${userData?['username']}
-Match: ${userData?['match_name']}
-Stadium: ${userData?['stadium_location']}
-Seat: ${userData?['seat_number']}
-''';
+    return json.encode({
+      'email': userData?['email'],
+      'username': userData?['username'],
+      'match': userData?['match_name'],
+      'stadium': userData?['stadium_location'],
+      'seat': userData?['seat_number'],
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (errorMessage != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Profile')),
+        body: Center(
+          child: Text(
+            errorMessage!,
+            style: const TextStyle(color: Colors.red, fontSize: 18),
+          ),
+        ),
+      );
+    }
+
     if (userData == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -66,11 +90,26 @@ Seat: ${userData?['seat_number']}
           child: Column(
             children: [
               const SizedBox(height: 30),
-              Text("Username: ${userData!['username']}"),
-              Text("Email: ${userData!['email']}"),
-              Text("Match: ${userData!['match_name']}"),
-              Text("Stadium: ${userData!['stadium_location']}"),
-              Text("Seat: ${userData!['seat_number']}"),
+              Text(
+                "Username: ${userData!['username']}",
+                style: const TextStyle(color: Colors.white, fontSize: 18),
+              ),
+              Text(
+                "Email: ${userData!['email']}",
+                style: const TextStyle(color: Colors.white, fontSize: 18),
+              ),
+              Text(
+                "Match: ${userData!['match_name']}",
+                style: const TextStyle(color: Colors.white, fontSize: 18),
+              ),
+              Text(
+                "Stadium: ${userData!['stadium_location']}",
+                style: const TextStyle(color: Colors.white, fontSize: 18),
+              ),
+              Text(
+                "Seat: ${userData!['seat_number']}",
+                style: const TextStyle(color: Colors.white, fontSize: 18),
+              ),
               const SizedBox(height: 20),
               GestureDetector(
                 onTap: () {

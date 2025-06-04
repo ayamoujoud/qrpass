@@ -23,7 +23,6 @@ class _SignInScreenState extends State<SignInScreen> {
   bool _isSponsor = false;
   bool _isOrganizer = false;
   bool _isSpectator = false;
-
   bool _isLoading = false;
 
   Widget buildTextField({
@@ -79,31 +78,28 @@ class _SignInScreenState extends State<SignInScreen> {
     );
   }
 
-  void _showSuccessDialog(String message) {
-    showDialog(
-      context: context,
-      builder:
-          (_) => AlertDialog(
-            title: const Text("Success"),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("OK"),
-              ),
-            ],
-          ),
-    );
-  }
-
   Future<void> _register() async {
-    if (emailController.text.isEmpty || passwordController.text.isEmpty) {
-      _showErrorDialog('Please enter both email and password');
+    String email = emailController.text.trim();
+    String password = passwordController.text.trim();
+    String confirmPassword = confirmPasswordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+      _showErrorDialog('Please fill in all fields');
       return;
     }
 
-    if (!emailController.text.contains('@')) {
-      _showErrorDialog('Please enter a valid email address');
+    if (!email.contains('@')) {
+      _showErrorDialog('Please enter a valid email');
+      return;
+    }
+
+    if (password != confirmPassword) {
+      _showErrorDialog('Passwords do not match');
+      return;
+    }
+
+    if (!_isSponsor && !_isOrganizer && !_isSpectator) {
+      _showErrorDialog('Please select a role');
       return;
     }
 
@@ -113,25 +109,35 @@ class _SignInScreenState extends State<SignInScreen> {
       final response = await http.post(
         Uri.parse("http://192.168.1.118:8080/qrpass-backend/api/register"),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'email': emailController.text.trim(),
-          'password': passwordController.text.trim(),
-        }),
+        body: json.encode({'email': email, 'password': password}),
       );
 
       final data = json.decode(response.body);
 
       if (response.statusCode == 200 && data['success'] == true) {
-        _showSuccessDialog('Account created successfully!');
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomePage()),
-        );
+        if (_isSpectator) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => HomePage(loggedInUsername: email),
+            ),
+          );
+        } else if (_isOrganizer) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => OrganizerHomePage()),
+          );
+        } else if (_isSponsor) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => SponsorHomePage()),
+          );
+        }
       } else {
-        _showErrorDialog(data['message'] ?? 'Registration failed. Try again.');
+        _showErrorDialog(data['message'] ?? 'Registration failed.');
       }
     } catch (e) {
-      _showErrorDialog('Network error. Please check your connection.');
+      _showErrorDialog('Network error. Try again.');
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -167,12 +173,6 @@ class _SignInScreenState extends State<SignInScreen> {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
-            const Text(
-              "Please enter your details below to continue.",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 30),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 30),
               child: Column(
@@ -205,7 +205,6 @@ class _SignInScreenState extends State<SignInScreen> {
                       );
                     },
                   ),
-                  const SizedBox(height: 10),
                   const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.start,
@@ -249,65 +248,27 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                   const SizedBox(height: 12),
                   ElevatedButton(
-                    onPressed: () {
-                      String email = emailController.text.trim();
-                      String password = passwordController.text.trim();
-                      String confirmPassword =
-                          confirmPasswordController.text.trim();
-
-                      if (password != confirmPassword) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Passwords do not match!'),
-                          ),
-                        );
-                        return;
-                      }
-
-                      if (_isSpectator) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const HomePage(),
-                          ),
-                        );
-                      } else if (_isOrganizer) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const OrganizerHomePage(),
-                          ),
-                        );
-                      } else if (_isSponsor) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => SponsorHomePage(),
-                          ),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Please select a role!'),
-                          ),
-                        );
-                      }
-                    },
+                    onPressed: _isLoading ? null : _register,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 234, 41, 41),
+                      backgroundColor: Colors.red,
                       minimumSize: const Size(double.infinity, 50),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(25),
                       ),
                     ),
-                    child: const Text(
-                      "Sign Up",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
+                    child:
+                        _isLoading
+                            ? const CircularProgressIndicator(
+                              color: Colors.white,
+                            )
+                            : const Text(
+                              "Sign Up",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
                   ),
                 ],
               ),

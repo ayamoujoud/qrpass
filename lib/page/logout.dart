@@ -3,7 +3,9 @@ import 'package:qrpass/main.dart';
 import 'package:qrpass/page/Homepage.dart';
 
 class LogoutPage extends StatelessWidget {
-  const LogoutPage({Key? key}) : super(key: key);
+  final String username; // Add this
+
+  const LogoutPage({Key? key, required this.username}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -111,7 +113,11 @@ class LogoutPage extends StatelessWidget {
                           // Handle logout action
                           Navigator.pushAndRemoveUntil(
                             context,
-                            MaterialPageRoute(builder: (context) => HomePage()),
+                            MaterialPageRoute(
+                              builder:
+                                  (context) =>
+                                      HomePage(loggedInUsername: username),
+                            ),
                             (route) => false, // Clear all previous routes
                           );
                         },

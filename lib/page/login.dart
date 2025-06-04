@@ -1,8 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:qrpass/page/Homepage.dart';
-import 'package:qrpass/page/passoublier.dart';
+
+// HomePage that shows the username
+class HomePage extends StatelessWidget {
+  final String username;
+
+  const HomePage({Key? key, required this.username}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Welcome, $username')),
+      body: Center(
+        child: Text('Hello, $username!', style: const TextStyle(fontSize: 24)),
+      ),
+    );
+  }
+}
+
+// Placeholder for PasswordRecoveryScreen (since you referenced it)
+class PasswordRecoveryScreen extends StatelessWidget {
+  const PasswordRecoveryScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Password Recovery')),
+      body: const Center(child: Text('Password recovery screen')),
+    );
+  }
+}
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -46,10 +74,14 @@ class _LoginPageState extends State<LoginPage> {
         final data = json.decode(response.body);
 
         if (data['success'] == true) {
+          final username = email; // Using email as username
+
           if (!mounted) return;
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const HomePage()),
+            MaterialPageRoute(
+              builder: (context) => HomePage(username: username),
+            ),
           );
         } else {
           _showErrorDialog(

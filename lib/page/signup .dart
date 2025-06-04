@@ -118,9 +118,7 @@ class _SignInScreenState extends State<SignInScreen> {
         if (_isSpectator) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(
-              builder: (context) => HomePage(loggedInUsername: email),
-            ),
+            MaterialPageRoute(builder: (context) => HomePage()),
           );
         } else if (_isOrganizer) {
           Navigator.pushReplacement(

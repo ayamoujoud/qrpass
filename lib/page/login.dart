@@ -1,25 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'Homepage.dart'; // Make sure this imports your HomePage.dart
 
-// HomePage that shows the username
-class HomePage extends StatelessWidget {
-  final String username;
-
-  const HomePage({Key? key, required this.username}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Welcome, $username')),
-      body: Center(
-        child: Text('Hello, $username!', style: const TextStyle(fontSize: 24)),
-      ),
-    );
-  }
-}
-
-// Placeholder for PasswordRecoveryScreen (since you referenced it)
 class PasswordRecoveryScreen extends StatelessWidget {
   const PasswordRecoveryScreen({Key? key}) : super(key: key);
 
@@ -68,20 +51,14 @@ class _LoginPageState extends State<LoginPage> {
         body: json.encode({'email': email, 'password': password}),
       );
 
-      print('Login response: ${response.statusCode}, body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
 
         if (data['success'] == true) {
-          final username = email; // Using email as username
-
           if (!mounted) return;
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(
-              builder: (context) => HomePage(username: username),
-            ),
+            MaterialPageRoute(builder: (context) => const HomePage()),
           );
         } else {
           _showErrorDialog(
@@ -94,9 +71,7 @@ class _LoginPageState extends State<LoginPage> {
     } catch (e) {
       _showErrorDialog('Network error. Please check your connection.');
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

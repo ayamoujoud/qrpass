@@ -1,20 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:qrpass/page/QRScanpage.dart';
 import 'package:qrpass/page/chatpage.dart';
 import 'package:qrpass/page/doors.dart';
 import 'package:qrpass/page/logout.dart';
 import 'package:qrpass/page/profile.dart';
-import 'Eventlist.dart';
+import 'package:qrpass/page/Eventlist.dart';
 
-class HomePage extends StatelessWidget {
-  // Add a final field to hold the logged-in username
-  final String loggedInUsername;
+class HomePage extends StatefulWidget {
+  const HomePage({Key? key}) : super(key: key);
 
-  // Require username in the constructor
-  const HomePage({super.key, required this.loggedInUsername});
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  String? loggedInUsername;
+
+  @override
+  void initState() {
+    super.initState();
+    loadEmail();
+  }
+
+  Future<void> loadEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString(
+      'userEmail',
+    ); // make sure this key matches your stored email key
+    setState(() {
+      loggedInUsername = email;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (loggedInUsername == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 12, 135, 45),
       appBar: AppBar(
@@ -47,8 +71,8 @@ class HomePage extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.door_back_door),
-              title: const Text('doors'),
+              leading: const Icon(Icons.meeting_room),
+              title: const Text('Doors'),
               onTap:
                   () => showModalBottomSheet(
                     context: context,
@@ -63,12 +87,19 @@ class HomePage extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.calendar_month),
-              title: const Text('les match'),
-              onTap: () {},
+              title: const Text('Les Matchs'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const EventListPage(),
+                  ),
+                );
+              },
             ),
             ListTile(
               leading: const Icon(Icons.qr_code_scanner),
-              title: const Text('scanner le code'),
+              title: const Text('Scanner le code'),
               onTap: () {
                 Navigator.push(
                   context,
@@ -88,21 +119,20 @@ class HomePage extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder:
-                        (context) => ProfileScreen(username: loggedInUsername),
+                    builder: (context) => const ProfileScreen(),
                   ),
                 );
               },
             ),
             ListTile(
               leading: const Icon(Icons.logout),
-              title: const Text('log out'),
+              title: const Text('Log out'),
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder:
-                        (context) => LogoutPage(username: loggedInUsername),
+                        (context) => LogoutPage(username: loggedInUsername!),
                   ),
                 );
               },
@@ -138,114 +168,76 @@ class HomePage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 30),
               child: Column(
                 children: [
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: Colors.black, width: 2),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: ListTile(
-                      leading: const Icon(
-                        Icons.qr_code_scanner,
-                        color: Colors.black,
-                      ),
-                      title: const Text(
-                        'Scanner mon billet',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                      ),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => QRScanPage()),
-                        );
-                      },
-                    ),
+                  _buildTile(
+                    icon: Icons.qr_code_scanner,
+                    title: 'Scanner mon billet',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => QRScanPage()),
+                      );
+                    },
                   ),
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: Colors.black, width: 2),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: ListTile(
-                      leading: const Icon(Icons.event, color: Colors.black),
-                      title: const Text(
-                        'Voir les événements',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                  _buildTile(
+                    icon: Icons.event,
+                    title: 'Voir les événements',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const EventListPage(),
                         ),
-                      ),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const EventListPage(),
-                          ),
-                        );
-                      },
-                    ),
+                      );
+                    },
                   ),
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: Colors.black, width: 2),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: ListTile(
-                      leading: const Icon(Icons.person, color: Colors.black),
-                      title: const Text(
-                        'Mon Profil',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                  _buildTile(
+                    icon: Icons.person,
+                    title: 'Mon Profil',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ProfileScreen(),
                         ),
-                      ),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) =>
-                                    ProfileScreen(username: loggedInUsername),
-                          ),
-                        );
-                      },
-                    ),
+                      );
+                    },
                   ),
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: Colors.black, width: 2),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: ListTile(
-                      leading: const Icon(
-                        Icons.local_offer,
-                        color: Colors.black,
-                      ),
-                      title: const Text(
-                        'voir les offres',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                      ),
-                      onTap: () {},
-                    ),
+                  _buildTile(
+                    icon: Icons.local_offer,
+                    title: 'Voir les offres',
+                    onTap: () {},
                   ),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildTile({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.black, width: 2),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: ListTile(
+        leading: Icon(icon, color: Colors.black),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+        onTap: onTap,
       ),
     );
   }

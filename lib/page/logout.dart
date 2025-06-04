@@ -113,11 +113,7 @@ class LogoutPage extends StatelessWidget {
                           // Handle logout action
                           Navigator.pushAndRemoveUntil(
                             context,
-                            MaterialPageRoute(
-                              builder:
-                                  (context) =>
-                                      HomePage(loggedInUsername: username),
-                            ),
+                            MaterialPageRoute(builder: (context) => HomePage()),
                             (route) => false, // Clear all previous routes
                           );
                         },

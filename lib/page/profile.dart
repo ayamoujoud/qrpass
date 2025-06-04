@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileScreen extends StatefulWidget {
-  final String username; // Changed to username
-
-  const ProfileScreen({Key? key, required this.username}) : super(key: key);
+  const ProfileScreen({Key? key}) : super(key: key);
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -16,17 +15,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? userData;
   String? errorMessage;
   bool isQrLarge = false;
+  String? email;
 
   @override
   void initState() {
     super.initState();
-    fetchUserData();
+    loadEmailAndFetchData();
   }
 
-  Future<void> fetchUserData() async {
+  Future<void> loadEmailAndFetchData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedEmail = prefs.getString('userEmail');
+    if (savedEmail == null) {
+      setState(() {
+        errorMessage = "Aucun email trouvé. Veuillez vous reconnecter.";
+      });
+      return;
+    }
+    setState(() {
+      email = savedEmail;
+    });
+    await fetchUserData(savedEmail);
+  }
+
+  Future<void> fetchUserData(String email) async {
     try {
       final url = Uri.parse(
-        'http://192.168.1.118:8080/api/profile/get_user?username=${widget.username}',
+        'http://192.168.1.118:8080/api/profile/get_user?email=$email',
       );
       final response = await http.get(url);
 
@@ -39,17 +54,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
           });
         } else {
           setState(() {
-            errorMessage = "Backend error: ${data['error']}";
+            errorMessage = "Erreur du serveur : ${data['error']}";
           });
         }
       } else {
         setState(() {
-          errorMessage = "Network error: ${response.statusCode}";
+          errorMessage = "Erreur réseau : ${response.statusCode}";
         });
       }
     } catch (e) {
       setState(() {
-        errorMessage = "Exception: $e";
+        errorMessage = "Erreur : $e";
       });
     }
   }

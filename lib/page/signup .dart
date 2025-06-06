@@ -78,6 +78,30 @@ class _SignInScreenState extends State<SignInScreen> {
     );
   }
 
+  void _showSuccessDialog(String message, Widget targetPage) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (_) => AlertDialog(
+            title: const Text("Success"),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context); // Close dialog
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => targetPage),
+                  );
+                },
+                child: const Text("OK"),
+              ),
+            ],
+          ),
+    );
+  }
+
   Future<void> _register() async {
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
@@ -109,37 +133,39 @@ class _SignInScreenState extends State<SignInScreen> {
       final response = await http.post(
         Uri.parse("http://192.168.1.118:8080/qrpass-backend/api/register"),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({'email': email, 'password': password}),
+        body: json.encode({
+          'email': email,
+          'password': password,
+          'role':
+              _isSpectator
+                  ? 'spectateur'
+                  : _isOrganizer
+                  ? 'organisateur'
+                  : 'sponsor',
+        }),
       );
 
       final data = json.decode(response.body);
 
       if (response.statusCode == 200 && data['success'] == true) {
-        if (_isSpectator) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => HomePage()),
-          );
-        } else if (_isOrganizer) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => OrganizerHomePage()),
-          );
-        } else if (_isSponsor) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => SponsorHomePage()),
-          );
-        }
+        Widget nextPage =
+            _isSpectator
+                ? HomePage()
+                : _isOrganizer
+                ? OrganizerHomePage()
+                : SponsorHomePage();
+
+        _showSuccessDialog(
+          data['message'] ?? 'Registration successful!',
+          nextPage,
+        );
       } else {
         _showErrorDialog(data['message'] ?? 'Registration failed.');
       }
     } catch (e) {
       _showErrorDialog('Network error. Try again.');
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

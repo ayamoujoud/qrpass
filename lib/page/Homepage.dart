@@ -1,44 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:qrpass/page/QRScanpage.dart';
 import 'package:qrpass/page/chatpage.dart';
 import 'package:qrpass/page/doors.dart';
 import 'package:qrpass/page/logout.dart';
+import 'package:qrpass/page/match.dart';
 import 'package:qrpass/page/profile.dart';
 import 'package:qrpass/page/Eventlist.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
+  const HomePage({Key? key}) : super(key: key); // no email here
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  String? loggedInUsername;
-
-  @override
-  void initState() {
-    super.initState();
-    loadEmail();
-  }
-
-  Future<void> loadEmail() async {
-    final prefs = await SharedPreferences.getInstance();
-    final email = prefs.getString(
-      'userEmail',
-    ); // make sure this key matches your stored email key
-    setState(() {
-      loggedInUsername = email;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (loggedInUsername == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 12, 135, 45),
       appBar: AppBar(
@@ -91,9 +69,7 @@ class _HomePageState extends State<HomePage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const EventListPage(),
-                  ),
+                  MaterialPageRoute(builder: (context) => MatchPage()),
                 );
               },
             ),
@@ -116,11 +92,11 @@ class _HomePageState extends State<HomePage> {
               leading: const Icon(Icons.person),
               title: const Text('Profil'),
               onTap: () {
+                // You can get email from wherever you manage user state,
+                // or pass email here if needed
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const ProfileScreen(),
-                  ),
+                  MaterialPageRoute(builder: (context) => ProfileScreen()),
                 );
               },
             ),
@@ -131,9 +107,8 @@ class _HomePageState extends State<HomePage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder:
-                        (context) => LogoutPage(username: loggedInUsername!),
-                  ),
+                    builder: (context) => LogoutPage(username: ''),
+                  ), // pass username if you have it
                 );
               },
             ),
@@ -197,8 +172,8 @@ class _HomePageState extends State<HomePage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const ProfileScreen(),
-                        ),
+                          builder: (context) => ProfileScreen(),
+                        ), // pass email here if needed
                       );
                     },
                   ),

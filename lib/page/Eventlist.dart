@@ -1,10 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'addevint.dart';
-import 'event_service.dart';
+import 'addevint.dart'; // Modal to add events
+import 'event_service.dart'; // Contains Event and EventService
 
-class EventListPage extends StatelessWidget {
+class EventListPage extends StatefulWidget {
   const EventListPage({super.key});
+
+  @override
+  State<EventListPage> createState() => _EventListPageState();
+}
+
+class _EventListPageState extends State<EventListPage> {
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEventsFromBackend();
+  }
+
+  Future<void> _loadEventsFromBackend() async {
+    await Provider.of<EventService>(context, listen: false).fetchEvents();
+    setState(() {
+      _isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,6 +35,21 @@ class EventListPage extends StatelessWidget {
         title: const Text("Events"),
         backgroundColor: Colors.green,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () async {
+              setState(() {
+                _isLoading = true;
+              });
+              await Provider.of<EventService>(
+                context,
+                listen: false,
+              ).fetchEvents();
+              setState(() {
+                _isLoading = false;
+              });
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.delete),
             onPressed:
@@ -37,7 +72,9 @@ class EventListPage extends StatelessWidget {
         child: const Icon(Icons.add),
       ),
       body:
-          events.isEmpty
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : events.isEmpty
               ? const Center(child: Text("No events available"))
               : ListView.builder(
                 itemCount: events.length,

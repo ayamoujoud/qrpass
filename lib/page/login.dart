@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'Homepage.dart'; // Make sure this imports your HomePage.dart
+import 'package:shared_preferences/shared_preferences.dart';
+import 'Homepage.dart'; // Your home page import
 
 class PasswordRecoveryScreen extends StatelessWidget {
   const PasswordRecoveryScreen({Key? key}) : super(key: key);
@@ -37,6 +38,7 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
+    // Basic email validation
     if (!email.contains('@')) {
       _showErrorDialog('Please enter a valid email address');
       return;
@@ -55,6 +57,10 @@ class _LoginPageState extends State<LoginPage> {
         final data = json.decode(response.body);
 
         if (data['success'] == true) {
+          // Save email to SharedPreferences
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('userEmail', email);
+
           if (!mounted) return;
           Navigator.pushReplacement(
             context,
@@ -69,6 +75,7 @@ class _LoginPageState extends State<LoginPage> {
         _showErrorDialog('Login failed. Please try again.');
       }
     } catch (e) {
+      debugPrint('Login error: $e');
       _showErrorDialog('Network error. Please check your connection.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -187,7 +194,9 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               child:
                                   _isLoading
-                                      ? const CircularProgressIndicator()
+                                      ? const CircularProgressIndicator(
+                                        color: Colors.black,
+                                      )
                                       : const Text('LOGIN'),
                             ),
                           ),

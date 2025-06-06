@@ -2,19 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'Homepage.dart'; // Your home page import
-
-class PasswordRecoveryScreen extends StatelessWidget {
-  const PasswordRecoveryScreen({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Password Recovery')),
-      body: const Center(child: Text('Password recovery screen')),
-    );
-  }
-}
+import 'package:qrpass/page/Homepage.dart';
+import 'package:qrpass/page/orghomepage.dart';
+import 'package:qrpass/page/sponser.dart';
+import 'package:qrpass/page/passoublier.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -38,7 +29,6 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    // Basic email validation
     if (!email.contains('@')) {
       _showErrorDialog('Please enter a valid email address');
       return;
@@ -53,24 +43,61 @@ class _LoginPageState extends State<LoginPage> {
         body: json.encode({'email': email, 'password': password}),
       );
 
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        if (response.body.isEmpty) {
+          _showErrorDialog('Server returned empty response.');
+          return;
+        }
+
+        Map<String, dynamic> data;
+        try {
+          data = json.decode(response.body);
+        } catch (e) {
+          _showErrorDialog('Invalid response format from server.');
+          return;
+        }
 
         if (data['success'] == true) {
-          // Save email to SharedPreferences
+          final role = data['role'] as String?;
+          if (role == null) {
+            _showErrorDialog('Role information missing in response.');
+            return;
+          }
+
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('userEmail', email);
+          await prefs.setString('userRole', role);
 
           if (!mounted) return;
+
+          Widget targetPage;
+          if (role == 'spectateur') {
+            targetPage = const HomePage();
+          } else if (role == 'organisateur') {
+            targetPage = const OrganizerHomePage();
+          } else if (role == 'sponsor') {
+            targetPage = const SponsorHomePage();
+          } else {
+            _showErrorDialog('Unknown role: $role');
+            return;
+          }
+
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const HomePage()),
+            MaterialPageRoute(builder: (context) => targetPage),
           );
         } else {
           _showErrorDialog(
             data['message'] ?? 'Login failed. Please try again.',
           );
         }
+      } else if (response.statusCode == 401) {
+        _showErrorDialog('Email or password incorrect.');
+      } else if (response.statusCode == 403) {
+        _showErrorDialog(dataFromBody(response.body) ?? 'Access forbidden.');
       } else {
         _showErrorDialog('Login failed. Please try again.');
       }
@@ -80,6 +107,16 @@ class _LoginPageState extends State<LoginPage> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  String? dataFromBody(String body) {
+    try {
+      final data = json.decode(body);
+      if (data is Map<String, dynamic> && data.containsKey('message')) {
+        return data['message'];
+      }
+    } catch (_) {}
+    return null;
   }
 
   void _showErrorDialog(String message) {
@@ -98,6 +135,13 @@ class _LoginPageState extends State<LoginPage> {
             ],
           ),
     );
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override

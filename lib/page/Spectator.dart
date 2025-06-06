@@ -24,7 +24,7 @@ class _SpectatorModalState extends State<SpectatorModal> {
   Future<void> fetchSpectators() async {
     try {
       final response = await http.get(
-        Uri.http('192.168.1.118:8080', '/qrpass/api/profile'),
+        Uri.http("http://192.168.1.118:8080/qrpass-backend/api/"),
       );
 
       if (response.statusCode == 200) {

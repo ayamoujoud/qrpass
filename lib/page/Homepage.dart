@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:qrpass/page/Eventlist.dart';
 import 'package:qrpass/page/QRScanpage.dart';
 import 'package:qrpass/page/chatpage.dart';
 import 'package:qrpass/page/doors.dart';
 import 'package:qrpass/page/logout.dart';
 import 'package:qrpass/page/match.dart';
 import 'package:qrpass/page/profile.dart';
-import 'package:qrpass/page/Eventlist.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key); // no email here
@@ -160,7 +160,7 @@ class _HomePageState extends State<HomePage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const EventListPage(),
+                          builder: (context) => EventListPage(),
                         ),
                       );
                     },

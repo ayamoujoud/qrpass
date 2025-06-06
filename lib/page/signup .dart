@@ -89,7 +89,10 @@ class _SignInScreenState extends State<SignInScreen> {
             actions: [
               TextButton(
                 onPressed: () {
-                  Navigator.pop(context); // Close dialog
+                  Navigator.of(
+                    context,
+                    rootNavigator: true,
+                  ).pop(); // Close dialog
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(builder: (context) => targetPage),
@@ -135,6 +138,7 @@ class _SignInScreenState extends State<SignInScreen> {
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'email': email,
+          'username': email,
           'password': password,
           'role':
               _isSpectator
@@ -147,13 +151,16 @@ class _SignInScreenState extends State<SignInScreen> {
 
       final data = json.decode(response.body);
 
-      if (response.statusCode == 200 && data['success'] == true) {
-        Widget nextPage =
-            _isSpectator
-                ? HomePage()
-                : _isOrganizer
-                ? OrganizerHomePage()
-                : SponsorHomePage();
+      if (response.statusCode == 201 && data['success'] == true) {
+        Widget nextPage;
+
+        if (_isOrganizer) {
+          nextPage = OrganizerHomePage();
+        } else if (_isSpectator) {
+          nextPage = HomePage();
+        } else {
+          nextPage = SponsorHomePage();
+        }
 
         _showSuccessDialog(
           data['message'] ?? 'Registration successful!',

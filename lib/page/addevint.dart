@@ -4,7 +4,6 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'dart:io';
 import 'dart:convert';
-import 'dart:async';
 
 class AddEventModal extends StatefulWidget {
   const AddEventModal({super.key});
@@ -49,7 +48,9 @@ class _AddEventModalState extends State<AddEventModal> {
   }
 
   Future<void> _submitEvent() async {
-    if (_eventNameController.text.trim().isEmpty || _selectedDate == null) {
+    final name = _eventNameController.text.trim();
+
+    if (name.isEmpty || _selectedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter name and select date')),
       );
@@ -60,18 +61,17 @@ class _AddEventModalState extends State<AddEventModal> {
       _isLoading = true;
     });
 
-    final url = Uri.parse(
-      'http://192.168.1.118/api/activities',
-    ); // Change IP as needed
+    final url = Uri.parse('http://192.168.1.118/api/activities?type=event');
 
     try {
       final request = http.MultipartRequest('POST', url);
-      request.fields['name'] = _eventNameController.text.trim();
+      request.fields['name'] = name;
       request.fields['date'] = _selectedDate!.toIso8601String();
 
       if (_image != null) {
-        final fileExt = _image!.path.split('.').last;
-        final mediaType = fileExt == 'png' ? 'png' : 'jpeg';
+        final ext = _image!.path.split('.').last.toLowerCase();
+        final mediaType = ext == 'png' ? 'png' : 'jpeg';
+
         request.files.add(
           await http.MultipartFile.fromPath(
             'image',
@@ -91,7 +91,7 @@ class _AddEventModalState extends State<AddEventModal> {
             content: Text('Event added: ${jsonData['message'] ?? 'Success'}'),
           ),
         );
-        Navigator.of(context).pop(); // Close modal
+        Navigator.of(context).pop();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Server error: ${response.statusCode}')),
@@ -117,6 +117,7 @@ class _AddEventModalState extends State<AddEventModal> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         child: Container(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -146,7 +147,7 @@ class _AddEventModalState extends State<AddEventModal> {
                       Text(
                         _selectedDate == null
                             ? "Select date"
-                            : "${_selectedDate!.toLocal()}".split(' ')[0],
+                            : "${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}",
                       ),
                       const Icon(Icons.calendar_today),
                     ],
@@ -175,7 +176,15 @@ class _AddEventModalState extends State<AddEventModal> {
                       ),
                     ],
                   )
-                  : const Text("No image selected"),
+                  : Container(
+                    height: 150,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Center(child: Text("No image selected")),
+                  ),
               TextButton.icon(
                 onPressed: _pickImage,
                 icon: const Icon(Icons.image),

@@ -19,10 +19,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool isQrLarge = false;
   File? _imageFile;
 
+  bool _isPickingImage = false;
+
   @override
   void initState() {
     super.initState();
+    loadProfileImage();
     loadEmailAndFetchData();
+  }
+
+  Future<void> loadProfileImage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedPath = prefs.getString('profileImagePath');
+    if (savedPath != null && File(savedPath).existsSync()) {
+      setState(() {
+        _imageFile = File(savedPath);
+      });
+    }
   }
 
   Future<void> loadEmailAndFetchData() async {
@@ -72,23 +85,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   String generateQrData() {
     if (userData == null) return '';
+
+    // Récupérer le premier ticket (s'il existe)
+    final tickets = userData!['tickets'] as List<dynamic>? ?? [];
+    final ticket = tickets.isNotEmpty ? tickets.first : null;
+
     return json.encode({
       'email': userData!['email'],
       'username': userData!['username'],
-      'match': userData!['match_name'],
-      'stadium': userData!['stadium_location'],
-      'seat': userData!['seat_number'],
+      'match': ticket != null ? ticket['activity_name'] : '',
+      'stadium':
+          '', // Pas de champ stadium dans JSON, tu peux adapter si tu en as
+      'seat': ticket != null ? ticket['seat'] : '',
+      'zone': ticket != null ? ticket['zone'] : '',
     });
   }
 
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedImage = await picker.pickImage(source: ImageSource.gallery);
+    if (_isPickingImage) return;
+    _isPickingImage = true;
+    try {
+      final picker = ImagePicker();
+      final pickedImage = await picker.pickImage(source: ImageSource.gallery);
 
-    if (pickedImage != null) {
-      setState(() {
-        _imageFile = File(pickedImage.path);
-      });
+      if (pickedImage != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('profileImagePath', pickedImage.path);
+
+        setState(() {
+          _imageFile = File(pickedImage.path);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+    } finally {
+      _isPickingImage = false;
     }
   }
 
@@ -110,6 +141,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    // Récupérer le premier ticket pour afficher ses données
+    final tickets = userData!['tickets'] as List<dynamic>? ?? [];
+    final ticket = tickets.isNotEmpty ? tickets.first : null;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
       backgroundColor: const Color.fromARGB(255, 12, 135, 45),
@@ -126,14 +161,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   backgroundImage:
                       _imageFile != null
                           ? FileImage(_imageFile!)
-                          : NetworkImage(
-                            'https://images.unsplash.com/photo-1603415526960-f8f0f6465c86?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60',
-                          ),
+                          : const NetworkImage(
+                                'https://images.unsplash.com/photo-1603415526960-f8f0f6465c86?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60',
+                              )
+                              as ImageProvider,
                 ),
-
                 const SizedBox(height: 10),
                 ElevatedButton(
-                  onPressed: _pickImage,
+                  onPressed: _isPickingImage ? null : _pickImage,
                   child: const Text('Changer la photo de profil'),
                 ),
                 const SizedBox(height: 20),
@@ -143,22 +178,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   textAlign: TextAlign.center,
                 ),
                 Text(
+                  "Zone: ${ticket != null ? ticket['zone'] : 'N/A'}",
+                  style: const TextStyle(color: Colors.white, fontSize: 18),
+                  textAlign: TextAlign.center,
+                ),
+                Text(
                   "Email: ${userData!['email']}",
                   style: const TextStyle(color: Colors.white, fontSize: 18),
                   textAlign: TextAlign.center,
                 ),
                 Text(
-                  "Match: ${userData!['match_name']}",
+                  "Match: ${ticket != null ? ticket['activity_name'] : 'N/A'}",
                   style: const TextStyle(color: Colors.white, fontSize: 18),
                   textAlign: TextAlign.center,
                 ),
                 Text(
-                  "Stadium: ${userData!['stadium_location']}",
+                  "Stadium: N/A", // Aucun champ stadium dans JSON donné
                   style: const TextStyle(color: Colors.white, fontSize: 18),
                   textAlign: TextAlign.center,
                 ),
                 Text(
-                  "Seat: ${userData!['seat_number']}",
+                  "Seat: ${ticket != null ? ticket['seat'] : 'N/A'}",
                   style: const TextStyle(color: Colors.white, fontSize: 18),
                   textAlign: TextAlign.center,
                 ),

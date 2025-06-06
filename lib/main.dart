@@ -1,8 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
-import 'package:qrpass/page/2page.dart';
+import 'package:provider/provider.dart';
+import 'package:qrpass/page/2page.dart'; // Your login screen and others
+import 'package:qrpass/page/event_service.dart'; // Your EventService class
 
-void main() => runApp(const MyApp());
+void main() {
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider<EventService>(create: (_) => EventService()),
+        // Add more providers here if needed
+      ],
+      child: const MyApp(),
+    ),
+  );
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

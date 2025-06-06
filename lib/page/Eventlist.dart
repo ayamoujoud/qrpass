@@ -21,9 +21,7 @@ class _EventListPageState extends State<EventListPage> {
 
   Future<void> _loadEventsFromBackend() async {
     await Provider.of<EventService>(context, listen: false).fetchEvents();
-    setState(() {
-      _isLoading = false;
-    });
+    setState(() => _isLoading = false);
   }
 
   @override
@@ -38,36 +36,30 @@ class _EventListPageState extends State<EventListPage> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () async {
-              setState(() {
-                _isLoading = true;
-              });
+              setState(() => _isLoading = true);
               await Provider.of<EventService>(
                 context,
                 listen: false,
               ).fetchEvents();
-              setState(() {
-                _isLoading = false;
-              });
+              setState(() => _isLoading = false);
             },
           ),
           IconButton(
             icon: const Icon(Icons.delete),
-            onPressed:
-                () =>
-                    Provider.of<EventService>(
-                      context,
-                      listen: false,
-                    ).clearEvents(),
+            onPressed: () {
+              Provider.of<EventService>(context, listen: false).clearEvents();
+            },
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed:
-            () => showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              builder: (context) => const AddEventModal(),
-            ),
+        onPressed: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            builder: (context) => AddEventModal(),
+          );
+        },
         backgroundColor: Colors.green,
         child: const Icon(Icons.add),
       ),
@@ -84,7 +76,7 @@ class _EventListPageState extends State<EventListPage> {
                     margin: const EdgeInsets.all(10),
                     child: ListTile(
                       leading:
-                          event.imageUrl.isNotEmpty
+                          event.imageUrl != null && event.imageUrl.isNotEmpty
                               ? Image.network(
                                 event.imageUrl,
                                 width: 50,
@@ -96,7 +88,9 @@ class _EventListPageState extends State<EventListPage> {
                               )
                               : const Icon(Icons.event),
                       title: Text(event.name),
-                      subtitle: Text("${event.date.toLocal()}".split(' ')[0]),
+                      subtitle: Text(
+                        event.date.toLocal().toString().split(' ')[0],
+                      ),
                     ),
                   );
                 },

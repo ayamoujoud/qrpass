@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
@@ -28,8 +29,19 @@ class SponsorHomePage extends StatefulWidget {
   State<SponsorHomePage> createState() => _SponsorHomePageState();
 }
 
+class Offer {
+  final String id;
+  final String name;
+
+  Offer({required this.id, required this.name});
+
+  factory Offer.fromJson(Map<String, dynamic> json) {
+    return Offer(id: json['id'].toString(), name: json['name']);
+  }
+}
+
 class _SponsorHomePageState extends State<SponsorHomePage> {
-  List<String> offers = [];
+  List<Offer> offers = [];
 
   @override
   void initState() {
@@ -43,19 +55,9 @@ class _SponsorHomePageState extends State<SponsorHomePage> {
         Uri.parse('http://your-backend.com/api/offers'),
       );
       if (response.statusCode == 200) {
-        // TODO: Parse actual offers from your backend response
-        // For example, if your backend returns JSON array of offers:
-        // final List<dynamic> jsonData = jsonDecode(response.body);
-        // setState(() {
-        //   offers = jsonData.map((e) => e['id'].toString()).toList();
-        // });
-        // For now, just a placeholder demo list:
+        final List<dynamic> data = json.decode(response.body);
         setState(() {
-          offers = [
-            'offer1',
-            'offer2',
-            'offer3',
-          ]; // Replace with actual parsing
+          offers = data.map((json) => Offer.fromJson(json)).toList();
         });
       } else {
         debugPrint('Failed to fetch offers: ${response.statusCode}');
@@ -69,7 +71,7 @@ class _SponsorHomePageState extends State<SponsorHomePage> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const AddOfferPage()),
-    ).then((_) => _fetchOffers()); // Refresh after adding
+    ).then((_) => _fetchOffers());
   }
 
   Future<void> _deleteOffer(String offerId) async {
@@ -83,7 +85,7 @@ class _SponsorHomePageState extends State<SponsorHomePage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Offer deleted successfully')),
         );
-        _fetchOffers(); // Refresh list after deletion
+        _fetchOffers();
       } else {
         ScaffoldMessenger.of(
           context,
@@ -112,14 +114,14 @@ class _SponsorHomePageState extends State<SponsorHomePage> {
                         shrinkWrap: true,
                         itemCount: offers.length,
                         itemBuilder: (context, index) {
-                          final offerId = offers[index];
+                          final offer = offers[index];
                           return ListTile(
-                            title: Text(offerId),
+                            title: Text(offer.name),
                             trailing: IconButton(
                               icon: const Icon(Icons.delete, color: Colors.red),
                               onPressed: () {
                                 Navigator.pop(context);
-                                _deleteOffer(offerId);
+                                _deleteOffer(offer.id);
                               },
                             ),
                           );
@@ -235,20 +237,20 @@ class _AddOfferPageState extends State<AddOfferPage> {
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
 
-      Navigator.pop(context); // Remove loading indicator
+      Navigator.pop(context); // Close loading dialog
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Offer added successfully')),
         );
-        Navigator.pop(context); // Go back to previous screen
+        Navigator.pop(context);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to add offer: $responseBody')),
         );
       }
     } catch (e) {
-      Navigator.pop(context); // Remove loading indicator
+      Navigator.pop(context); // Close loading dialog
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error occurred: $e')));

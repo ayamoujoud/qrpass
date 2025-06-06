@@ -12,9 +12,9 @@ class Event {
   // Convert JSON to Event
   factory Event.fromJson(Map<String, dynamic> json) {
     return Event(
-      name: json['name'],
+      name: json['name'] ?? 'No name', // fallback if null
       date: DateTime.parse(json['date']),
-      imageUrl: json['imageUrl'] ?? '',
+      imageUrl: json['imageUrl'] ?? '', // fallback if missing
     );
   }
 
@@ -25,8 +25,7 @@ class Event {
 class EventService with ChangeNotifier {
   final List<Event> _events = [];
 
-  List<Event> get events => _events;
-
+  List<Event> get events => List.unmodifiable(_events); // read-only list
   void addEvent(Event newEvent) {
     _events.add(newEvent);
     notifyListeners();
@@ -39,7 +38,7 @@ class EventService with ChangeNotifier {
 
   Future<void> fetchEvents() async {
     const String url =
-        'http://192.168.1.118:8080/qrpass-backend/api/activities?type=envent';
+        'http://192.168.1.118:8080/qrpass-backend/api/activities?type=event';
 
     try {
       final response = await http.get(Uri.parse(url));
@@ -50,7 +49,7 @@ class EventService with ChangeNotifier {
         _events.addAll(jsonData.map((e) => Event.fromJson(e)).toList());
         notifyListeners();
       } else {
-        print("Failed to load events. Status: ${response.statusCode}");
+        print("Failed to load events. Status code: ${response.statusCode}");
       }
     } catch (e) {
       print("Error fetching events: $e");

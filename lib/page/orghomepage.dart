@@ -4,6 +4,7 @@ import 'addevint.dart';
 import 'Spectator.dart';
 import 'package:qrpass/page/doors.dart';
 import 'package:qrpass/page/event_service.dart';
+import 'logout.dart';
 
 class OrganizerHomePage extends StatefulWidget {
   const OrganizerHomePage({super.key});
@@ -116,6 +117,23 @@ class _OrganizerHomePageState extends State<OrganizerHomePage> {
               icon: Icons.add_circle,
               label: "Add Event",
               onTap: _addEvent,
+            ),
+            const SizedBox(height: 40),
+            _buildOptionCard(
+              context,
+              icon: Icons.door_front_door,
+              label: "LOG OUT ",
+              onTap:
+                  () => showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
+                    ),
+                    builder: (context) => const LogoutPage(),
+                  ),
             ),
           ],
         ),

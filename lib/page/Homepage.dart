@@ -6,9 +6,10 @@ import 'package:qrpass/page/doors.dart';
 import 'package:qrpass/page/logout.dart';
 import 'package:qrpass/page/match.dart';
 import 'package:qrpass/page/profile.dart';
+import 'package:qrpass/page/ViewOffersPage.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key); // no email here
+  const HomePage({Key? key}) : super(key: key);
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -92,8 +93,6 @@ class _HomePageState extends State<HomePage> {
               leading: const Icon(Icons.person),
               title: const Text('Profil'),
               onTap: () {
-                // You can get email from wherever you manage user state,
-                // or pass email here if needed
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => ProfileScreen()),
@@ -106,9 +105,7 @@ class _HomePageState extends State<HomePage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => LogoutPage(username: ''),
-                  ), // pass username if you have it
+                  MaterialPageRoute(builder: (context) => LogoutPage()),
                 );
               },
             ),
@@ -173,14 +170,21 @@ class _HomePageState extends State<HomePage> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => ProfileScreen(),
-                        ), // pass email here if needed
+                        ),
                       );
                     },
                   ),
                   _buildTile(
                     icon: Icons.local_offer,
                     title: 'Voir les offres',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ViewOffersPage(),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

@@ -55,7 +55,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> fetchUserData(String email) async {
     try {
       final url = Uri.parse(
-        'http://192.168.1.118:8080/qrpass-backend/api/profile?email=$email',
+        'http://192.168.8.22:8080/qrpass-backend/api/profile?email=$email',
       );
       final response = await http.get(url);
 
@@ -94,8 +94,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       'email': userData!['email'],
       'username': userData!['username'],
       'match': ticket != null ? ticket['activity_name'] : '',
-      'stadium':
-          '', // Pas de champ stadium dans JSON, tu peux adapter si tu en as
+      'stadium': 'STAD_01',
       'seat': ticket != null ? ticket['seat'] : '',
       'zone': ticket != null ? ticket['zone'] : '',
     });

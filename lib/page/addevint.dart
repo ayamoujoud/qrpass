@@ -17,6 +17,7 @@ class _AddEventModalState extends State<AddEventModal> {
   DateTime? _selectedDate;
   File? _image;
   bool _isLoading = false;
+  bool _isPickingImage = false;
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -33,17 +34,26 @@ class _AddEventModalState extends State<AddEventModal> {
   }
 
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1024,
-      maxHeight: 1024,
-      imageQuality: 80,
-    );
-    if (picked != null) {
-      setState(() {
-        _image = File(picked.path);
-      });
+    if (_isPickingImage) return;
+    _isPickingImage = true;
+
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 80,
+      );
+      if (picked != null) {
+        setState(() {
+          _image = File(picked.path);
+        });
+      }
+    } catch (e) {
+      // Gérer erreur si besoin
+    } finally {
+      _isPickingImage = false;
     }
   }
 
@@ -61,16 +71,27 @@ class _AddEventModalState extends State<AddEventModal> {
       _isLoading = true;
     });
 
-    final url = Uri.parse('http://192.168.1.118/api/activities?type=event');
-
     try {
+      final url = Uri.parse(
+        'http://192.168.8.22:8080/api/activities?type=event',
+      );
       final request = http.MultipartRequest('POST', url);
+
+      request.fields['type'] = 'event';
       request.fields['name'] = name;
-      request.fields['date'] = _selectedDate!.toIso8601String();
+      // Envoi date en ISO8601 UTC
+      request.fields['date'] = _selectedDate!.toUtc().toIso8601String();
+
+      // Envoi 'null' sans guillemets pour team_a et team_b, car backend attend null ou String
+      // Ici on envoie une chaîne vide pour signifier NULL, à adapter selon backend
+      request.fields['team_a'] = '';
+      request.fields['team_b'] = '';
+      request.fields['stadium_id'] = 'STAD_01';
+      request.fields['match_status'] = 'upcoming';
 
       if (_image != null) {
         final ext = _image!.path.split('.').last.toLowerCase();
-        final mediaType = ext == 'png' ? 'png' : 'jpeg';
+        final mediaType = (ext == 'png') ? 'png' : 'jpeg';
 
         request.files.add(
           await http.MultipartFile.fromPath(
@@ -81,10 +102,12 @@ class _AddEventModalState extends State<AddEventModal> {
         );
       }
 
-      final response = await request.send();
+      final response = await request.send().timeout(
+        const Duration(seconds: 20),
+      );
       final responseBody = await response.stream.bytesToString();
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.statusCode == 201) {
         final jsonData = json.decode(responseBody);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -108,6 +131,12 @@ class _AddEventModalState extends State<AddEventModal> {
         });
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _eventNameController.dispose();
+    super.dispose();
   }
 
   @override

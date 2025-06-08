@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+// Event Model
 class Event {
   final String name;
   final DateTime date;
@@ -9,12 +10,15 @@ class Event {
 
   const Event({required this.name, required this.date, required this.imageUrl});
 
-  // Convert JSON to Event
   factory Event.fromJson(Map<String, dynamic> json) {
+    // Fix date format: remove double spaces
+    String rawDate = (json['date'] ?? '').replaceAll('  ', ' ');
+    DateTime parsedDate = DateTime.tryParse(rawDate) ?? DateTime(2000, 1, 1);
+
     return Event(
-      name: json['name'] ?? 'No name', // fallback if null
-      date: DateTime.parse(json['date']),
-      imageUrl: json['imageUrl'] ?? '', // fallback if missing
+      name: json['name'] ?? 'No name',
+      date: parsedDate,
+      imageUrl: json['photo_url'] ?? '',
     );
   }
 
@@ -22,10 +26,12 @@ class Event {
   String toString() => 'Event(name: $name, date: $date, imageUrl: $imageUrl)';
 }
 
+// Event Service with ChangeNotifier for state management
 class EventService with ChangeNotifier {
   final List<Event> _events = [];
 
-  List<Event> get events => List.unmodifiable(_events); // read-only list
+  List<Event> get events => List.unmodifiable(_events);
+
   void addEvent(Event newEvent) {
     _events.add(newEvent);
     notifyListeners();
@@ -38,7 +44,7 @@ class EventService with ChangeNotifier {
 
   Future<void> fetchEvents() async {
     const String url =
-        'http://192.168.1.118:8080/qrpass-backend/api/activities?type=event';
+        'http://192.168.8.22:8080/qrpass-backend/api/activities?type=event';
 
     try {
       final response = await http.get(Uri.parse(url));

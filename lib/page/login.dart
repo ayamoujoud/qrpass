@@ -38,7 +38,7 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final response = await http.post(
-        Uri.parse("http://192.168.1.118:8080/qrpass-backend/api/login"),
+        Uri.parse("http://192.168.8.22:8080/qrpass-backend/api/login"),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'email': email, 'password': password}),
       );

@@ -1,10 +1,7 @@
-import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:mime/mime.dart';
+import 'logout.dart';
 
 void main() {
   runApp(const MyApp());
@@ -30,13 +27,28 @@ class SponsorHomePage extends StatefulWidget {
 }
 
 class Offer {
-  final String id;
-  final String name;
+  final String title;
+  final String description;
+  final String promoCode;
+  final String startDate;
+  final String endDate;
 
-  Offer({required this.id, required this.name});
+  Offer({
+    required this.title,
+    required this.description,
+    required this.promoCode,
+    required this.startDate,
+    required this.endDate,
+  });
 
   factory Offer.fromJson(Map<String, dynamic> json) {
-    return Offer(id: json['id'].toString(), name: json['name']);
+    return Offer(
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      promoCode: json['promoCode'] ?? '',
+      startDate: json['startDate'] ?? '',
+      endDate: json['endDate'] ?? '',
+    );
   }
 }
 
@@ -52,36 +64,28 @@ class _SponsorHomePageState extends State<SponsorHomePage> {
   Future<void> _fetchOffers() async {
     try {
       final response = await http.get(
-        Uri.parse('http://your-backend.com/api/offers'),
+        Uri.parse('http://192.168.8.22:8080/qrpass-backend/api/sponsorOffer'),
       );
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final List<dynamic> data = jsonDecode(response.body);
         setState(() {
           offers = data.map((json) => Offer.fromJson(json)).toList();
         });
-      } else {
-        debugPrint('Failed to fetch offers: ${response.statusCode}');
       }
     } catch (e) {
       debugPrint('Error fetching offers: $e');
     }
   }
 
-  void _addOffer() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const AddOfferPage()),
-    ).then((_) => _fetchOffers());
-  }
-
-  Future<void> _deleteOffer(String offerId) async {
+  Future<void> _deleteOffer(String title) async {
     try {
       final response = await http.delete(
-        Uri.parse('http://your-backend.com/api/offers/$offerId'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse(
+          'http://192.168.8.22:8080/qrpass-backend/api/sponsorOffer?title=$title',
+        ),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 201 || response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Offer deleted successfully')),
         );
@@ -97,6 +101,13 @@ class _SponsorHomePageState extends State<SponsorHomePage> {
         context,
       ).showSnackBar(SnackBar(content: Text('Error deleting offer: $e')));
     }
+  }
+
+  void _addOffer() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AddOfferPage()),
+    ).then((_) => _fetchOffers());
   }
 
   void _showDeleteDialog() {
@@ -116,12 +127,12 @@ class _SponsorHomePageState extends State<SponsorHomePage> {
                         itemBuilder: (context, index) {
                           final offer = offers[index];
                           return ListTile(
-                            title: Text(offer.name),
+                            title: Text(offer.title),
                             trailing: IconButton(
                               icon: const Icon(Icons.delete, color: Colors.red),
                               onPressed: () {
                                 Navigator.pop(context);
-                                _deleteOffer(offer.id);
+                                _deleteOffer(offer.title);
                               },
                             ),
                           );
@@ -141,7 +152,21 @@ class _SponsorHomePageState extends State<SponsorHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Sponsor Homepage')),
+      appBar: AppBar(
+        title: const Text('Sponsor Homepage'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Log Out',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => LogoutPage()),
+              );
+            },
+          ),
+        ],
+      ),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -189,55 +214,60 @@ class AddOfferPage extends StatefulWidget {
 }
 
 class _AddOfferPageState extends State<AddOfferPage> {
-  final TextEditingController _nameController = TextEditingController();
-  File? _image;
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _startDateController = TextEditingController();
+  final TextEditingController _endDateController = TextEditingController();
+  final TextEditingController _promocodeController = TextEditingController();
 
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _image = File(pickedFile.path);
-      });
+  bool _isValidDate(String input) {
+    try {
+      DateTime.parse(input);
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 
   Future<void> _uploadOffer() async {
-    final name = _nameController.text.trim();
-    if (name.isEmpty || _image == null) {
+    final title = _titleController.text.trim();
+    final description = _descriptionController.text.trim();
+    final startDate = _startDateController.text.trim();
+    final endDate = _endDateController.text.trim();
+    final promocode = _promocodeController.text.trim();
+
+    if (title.isEmpty ||
+        description.isEmpty ||
+        startDate.isEmpty ||
+        endDate.isEmpty ||
+        promocode.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all fields')),
+      );
+      return;
+    }
+
+    if (!_isValidDate(startDate) || !_isValidDate(endDate)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter a name and select an image'),
+          content: Text('Please enter valid dates in YYYY-MM-DD format'),
         ),
       );
       return;
     }
 
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
+      final response = await http.post(
+        Uri.parse('http://192.168.8.22:8080/qrpass-backend/api/sponsorOffer'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "title": title,
+          "description": description,
+          "promocode": promocode,
+          "startDate": startDate,
+          "endDate": endDate,
+        }),
       );
-
-      final uri = Uri.parse('http://your-backend.com/api/offers');
-      final request = http.MultipartRequest('POST', uri);
-
-      final mimeTypeData = lookupMimeType(_image!.path)!.split('/');
-      request.files.add(
-        await http.MultipartFile.fromPath(
-          'image',
-          _image!.path,
-          contentType: MediaType(mimeTypeData[0], mimeTypeData[1]),
-        ),
-      );
-
-      request.fields['name'] = name;
-
-      final response = await request.send();
-      final responseBody = await response.stream.bytesToString();
-
-      Navigator.pop(context); // Close loading dialog
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -246,11 +276,10 @@ class _AddOfferPageState extends State<AddOfferPage> {
         Navigator.pop(context);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add offer: $responseBody')),
+          SnackBar(content: Text('Failed to add offer: ${response.body}')),
         );
       }
     } catch (e) {
-      Navigator.pop(context); // Close loading dialog
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error occurred: $e')));
@@ -260,37 +289,95 @@ class _AddOfferPageState extends State<AddOfferPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(title: const Text('Add Offer')),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Offer Name',
-                border: OutlineInputBorder(),
-              ),
+      body: Center(
+        child: SingleChildScrollView(
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.85,
+            padding: const EdgeInsets.all(24.0),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 15,
+                  offset: Offset(0, 8),
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: _pickImage,
-              icon: const Icon(Icons.image),
-              label: const Text('Pick Image'),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Title',
+                    filled: true,
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    filled: true,
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _startDateController,
+                  decoration: const InputDecoration(
+                    labelText: 'Start Date (YYYY-MM-DD)',
+                    filled: true,
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.datetime,
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _endDateController,
+                  decoration: const InputDecoration(
+                    labelText: 'End Date (YYYY-MM-DD)',
+                    filled: true,
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.datetime,
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _promocodeController,
+                  decoration: const InputDecoration(
+                    labelText: 'Promo Code',
+                    filled: true,
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: _uploadOffer,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 16.0,
+                      horizontal: 32.0,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Save Offer',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            if (_image != null)
-              Image.file(_image!, height: 150, width: 150, fit: BoxFit.cover),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _uploadOffer,
-                child: const Text('Save Offer'),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

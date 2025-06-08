@@ -134,7 +134,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse("http://192.168.1.118:8080/qrpass-backend/api/register"),
+        Uri.parse("http://192.168.8.22:8080/qrpass-backend/api/register"),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'email': email,

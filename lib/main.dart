@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:provider/provider.dart';
-import 'package:qrpass/page/2page.dart'; // Your login screen and others
-import 'package:qrpass/page/event_service.dart'; // Your EventService class
+import 'package:qrpass/page/2page.dart';
+import 'package:qrpass/page/event_service.dart';
+import 'package:qrpass/page/match_service.dart';
 
 void main() {
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider<EventService>(create: (_) => EventService()),
+        ChangeNotifierProvider<MatchService>(create: (_) => MatchService()),
         // Add more providers here if needed
       ],
       child: const MyApp(),

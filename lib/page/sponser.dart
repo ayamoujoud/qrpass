@@ -71,6 +71,8 @@ class _SponsorHomePageState extends State<SponsorHomePage> {
         setState(() {
           offers = data.map((json) => Offer.fromJson(json)).toList();
         });
+      } else {
+        debugPrint('Failed to fetch offers: ${response.statusCode}');
       }
     } catch (e) {
       debugPrint('Error fetching offers: $e');
@@ -85,15 +87,17 @@ class _SponsorHomePageState extends State<SponsorHomePage> {
         ),
       );
 
-      if (response.statusCode == 201 || response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 20) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Offer deleted successfully')),
         );
         _fetchOffers();
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Failed to delete offer')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete offer: ${response.statusCode}'),
+          ),
+        );
       }
     } catch (e) {
       debugPrint('Error deleting offer: $e');
@@ -161,7 +165,7 @@ class _SponsorHomePageState extends State<SponsorHomePage> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => LogoutPage()),
+                MaterialPageRoute(builder: (context) => const LogoutPage()),
               );
             },
           ),
@@ -263,7 +267,7 @@ class _AddOfferPageState extends State<AddOfferPage> {
         body: jsonEncode({
           "title": title,
           "description": description,
-          "promocode": promocode,
+          "promoCode": promocode, // Changed from "promocode" to match backend
           "startDate": startDate,
           "endDate": endDate,
         }),
@@ -276,7 +280,9 @@ class _AddOfferPageState extends State<AddOfferPage> {
         Navigator.pop(context);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add offer: ${response.body}')),
+          SnackBar(
+            content: Text('Failed to add offer: ${response.statusCode}'),
+          ),
         );
       }
     } catch (e) {

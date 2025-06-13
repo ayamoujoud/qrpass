@@ -192,7 +192,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   textAlign: TextAlign.center,
                 ),
                 Text(
-                  "Stadium: N/A", // Aucun champ stadium dans JSON donné
+                  "Stadium: complexe_prince_moulay_001", // Aucun champ stadium dans JSON donné
                   style: const TextStyle(color: Colors.white, fontSize: 18),
                   textAlign: TextAlign.center,
                 ),

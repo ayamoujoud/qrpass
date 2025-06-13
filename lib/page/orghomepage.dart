@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:qrpass/page/QRScanpage.dart';
 import 'addevint.dart';
 import 'Spectator.dart';
+import 'package:qrpass/page/Eventlist.dart';
 import 'package:qrpass/page/doors.dart';
 import 'package:qrpass/page/event_service.dart';
 import 'logout.dart';
@@ -117,6 +118,24 @@ class _OrganizerHomePageState extends State<OrganizerHomePage> {
               icon: Icons.add_circle,
               label: "Add Event",
               onTap: _addEvent,
+            ),
+
+            const SizedBox(height: 40),
+            _buildOptionCard(
+              context,
+              icon: Icons.event,
+              label: "Event list ",
+              onTap:
+                  () => showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
+                    ),
+                    builder: (context) => const EventListPage(),
+                  ),
             ),
             const SizedBox(height: 40),
             _buildOptionCard(

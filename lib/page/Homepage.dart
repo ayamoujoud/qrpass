@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:qrpass/page/Eventlist.dart';
-import 'package:qrpass/page/QRScanpage.dart';
+import 'package:qrpass/page/scanspect.dart';
 import 'package:qrpass/page/chatpage.dart';
 import 'package:qrpass/page/doors.dart';
 import 'package:qrpass/page/logout.dart';
@@ -80,7 +80,7 @@ class _HomePageState extends State<HomePage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => QRScanPage()),
+                  MaterialPageRoute(builder: (context) => QRScan()),
                 );
               },
             ),
@@ -146,7 +146,7 @@ class _HomePageState extends State<HomePage> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => QRScanPage()),
+                        MaterialPageRoute(builder: (context) => QRScan()),
                       );
                     },
                   ),

@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'dart:io';
 import 'dart:convert';
+import 'dart:async'; // Added for TimeoutException
 
 class AddEventModal extends StatefulWidget {
   const AddEventModal({super.key});
@@ -14,19 +15,23 @@ class AddEventModal extends StatefulWidget {
 
 class _AddEventModalState extends State<AddEventModal> {
   final TextEditingController _eventNameController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
   DateTime? _selectedDate;
   File? _image;
   bool _isLoading = false;
   bool _isPickingImage = false;
 
   Future<void> _pickDate() async {
+    if (!mounted) return;
+
     final picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime(2100),
     );
-    if (picked != null) {
+
+    if (picked != null && mounted) {
       setState(() {
         _selectedDate = picked;
       });
@@ -34,8 +39,8 @@ class _AddEventModalState extends State<AddEventModal> {
   }
 
   Future<void> _pickImage() async {
-    if (_isPickingImage) return;
-    _isPickingImage = true;
+    if (_isPickingImage || !mounted) return;
+    setState(() => _isPickingImage = true);
 
     try {
       final picker = ImagePicker();
@@ -45,49 +50,52 @@ class _AddEventModalState extends State<AddEventModal> {
         maxHeight: 1024,
         imageQuality: 80,
       );
-      if (picked != null) {
+
+      if (picked != null && mounted) {
         setState(() {
           _image = File(picked.path);
         });
       }
     } catch (e) {
-      // Gérer erreur si besoin
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Image picker error: ${e.toString()}')),
+        );
+      }
     } finally {
-      _isPickingImage = false;
+      if (mounted) {
+        setState(() => _isPickingImage = false);
+      }
     }
   }
 
   Future<void> _submitEvent() async {
-    final name = _eventNameController.text.trim();
-
-    if (name.isEmpty || _selectedDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter name and select date')),
-      );
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedDate == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a date')));
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final url = Uri.parse(
-        'http://192.168.8.22:8080/api/activities?type=event',
+        'http://192.168.8.22:8080/qrpass-backend/api/activities?type=event',
       );
       final request = http.MultipartRequest('POST', url);
 
-      request.fields['type'] = 'event';
-      request.fields['name'] = name;
-      // Envoi date en ISO8601 UTC
-      request.fields['date'] = _selectedDate!.toUtc().toIso8601String();
-
-      // Envoi 'null' sans guillemets pour team_a et team_b, car backend attend null ou String
-      // Ici on envoie une chaîne vide pour signifier NULL, à adapter selon backend
-      request.fields['team_a'] = '';
-      request.fields['team_b'] = '';
-      request.fields['stadium_id'] = 'STAD_01';
-      request.fields['match_status'] = 'upcoming';
+      request.fields.addAll({
+        'type': 'event',
+        'name': _eventNameController.text.trim(),
+        'date': _selectedDate!.toUtc().toIso8601String(),
+        'team_a': '',
+        'team_b': '',
+        'stadium_id': 'STAD_01',
+        'match_status': 'upcoming',
+      });
 
       if (_image != null) {
         final ext = _image!.path.split('.').last.toLowerCase();
@@ -107,6 +115,8 @@ class _AddEventModalState extends State<AddEventModal> {
       );
       final responseBody = await response.stream.bytesToString();
 
+      if (!mounted) return;
+
       if (response.statusCode == 201) {
         final jsonData = json.decode(responseBody);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -114,21 +124,26 @@ class _AddEventModalState extends State<AddEventModal> {
             content: Text('Event added: ${jsonData['message'] ?? 'Success'}'),
           ),
         );
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(true);
       } else {
+        final error = json.decode(responseBody)['message'] ?? 'Server error';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Server error: ${response.statusCode}')),
+          SnackBar(content: Text('Error: $error (${response.statusCode})')),
         );
       }
+    } on TimeoutException catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Request timeout')));
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
     } finally {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -149,91 +164,127 @@ class _AddEventModalState extends State<AddEventModal> {
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         child: Container(
           padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("Add New Event", style: TextStyle(fontSize: 20)),
-              const SizedBox(height: 15),
-              TextField(
-                controller: _eventNameController,
-                decoration: const InputDecoration(
-                  labelText: "Event Name*",
-                  border: OutlineInputBorder(),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  "Add New Event",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-                maxLength: 50,
-              ),
-              const SizedBox(height: 10),
-              InkWell(
-                onTap: _pickDate,
-                child: InputDecorator(
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _eventNameController,
                   decoration: const InputDecoration(
-                    labelText: "Event Date*",
+                    labelText: "Event Name*",
                     border: OutlineInputBorder(),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        _selectedDate == null
-                            ? "Select date"
-                            : "${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}",
-                      ),
-                      const Icon(Icons.calendar_today),
-                    ],
-                  ),
+                  maxLength: 50,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter an event name';
+                    }
+                    return null;
+                  },
                 ),
-              ),
-              const SizedBox(height: 20),
-              _image != null
-                  ? Stack(
-                    alignment: Alignment.topRight,
-                    children: [
-                      Container(
-                        height: 150,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          image: DecorationImage(
-                            image: FileImage(_image!),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Colors.red),
-                        onPressed: () => setState(() => _image = null),
-                      ),
-                    ],
-                  )
-                  : Container(
-                    height: 150,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey),
-                      borderRadius: BorderRadius.circular(8),
+                const SizedBox(height: 15),
+                InkWell(
+                  onTap: _pickDate,
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: "Event Date*",
+                      border: OutlineInputBorder(),
                     ),
-                    child: const Center(child: Text("No image selected")),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _selectedDate == null
+                              ? "Select date"
+                              : "${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}",
+                        ),
+                        const Icon(Icons.calendar_today),
+                      ],
+                    ),
                   ),
-              TextButton.icon(
-                onPressed: _pickImage,
-                icon: const Icon(Icons.image),
-                label: const Text("Select Image"),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _submitEvent,
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 50),
                 ),
-                child:
-                    _isLoading
-                        ? const CircularProgressIndicator()
-                        : const Text("Add Event"),
-              ),
-            ],
+                const SizedBox(height: 20),
+                _buildImagePreview(),
+                const SizedBox(height: 10),
+                TextButton.icon(
+                  onPressed: _isPickingImage ? null : _pickImage,
+                  icon: const Icon(Icons.image),
+                  label: const Text("Select Image"),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _submitEvent,
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 50),
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                  ),
+                  child:
+                      _isLoading
+                          ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                          : const Text("Add Event"),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildImagePreview() {
+    return _image != null
+        ? Stack(
+          alignment: Alignment.topRight,
+          children: [
+            Container(
+              height: 150,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                image: DecorationImage(
+                  image: FileImage(_image!),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.red),
+              onPressed: () {
+                if (mounted) {
+                  setState(() => _image = null);
+                }
+              },
+            ),
+          ],
+        )
+        : Container(
+          height: 150,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.image, size: 40, color: Colors.grey),
+              const SizedBox(height: 8),
+              Text(
+                _isPickingImage ? 'Loading image...' : 'No image selected',
+                style: const TextStyle(color: Colors.grey),
+              ),
+            ],
+          ),
+        );
   }
 }
